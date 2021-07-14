@@ -6,58 +6,44 @@ using CryptoTechReminderSystem.Gateway;
 
 namespace CryptoTechReminderSystem.UseCase
 {
-    public class GetLateBillablePeople : IGetLateBillablePeople
+    public class GetBillablePeople : IGetBillablePeople
     {
-        private readonly IHarvestBillablePersonRetriever _harvestBillablePersonRetriever;
-        private readonly ITimeSheetRetriever _harvestTimeSheetRetriever;
         private readonly ISlackBillablePersonRetriever _slackBillablePersonRetriever;
         private readonly IClock _clock;
 
-        public GetLateBillablePeople(ISlackBillablePersonRetriever slackBillablePersonRetriever, IHarvestBillablePersonRetriever harvestBillablePersonRetriever, ITimeSheetRetriever harvestTimeSheetRetriever, IClock clock)
+        public GetBillablePeople(ISlackBillablePersonRetriever slackBillablePersonRetriever, IClock clock)
         {
-            _harvestBillablePersonRetriever = harvestBillablePersonRetriever;
-            _harvestTimeSheetRetriever = harvestTimeSheetRetriever;
             _slackBillablePersonRetriever = slackBillablePersonRetriever;
             _clock = clock;
         }
         
-        public GetLateBillablePeopleResponse Execute()
+        public GetBillablePeopleResponse Execute()
         {
-            var getLateBillablePeopleResponse = new GetLateBillablePeopleResponse
+            var getBillablePeopleResponse = new GetBillablePeopleResponse
             {
-                BillablePeople = new List<GetLateBillablePeopleResponse.LateBillablePerson>()
+                BillablePeople = new List<GetBillablePeopleResponse.BillablePerson>()
             };
             
-            if (IsWeekend(_clock.Now())) return getLateBillablePeopleResponse;
+            var nonBillablePeople = GetNonBillablePeople();
+
+            if (IsWeekend(_clock.Now())) return getBillablePeopleResponse;
             
-            var harvestGetBillablePeopleResponse = _harvestBillablePersonRetriever.RetrieveBillablePeople();
             var slackGetBillablePeopleResponse = _slackBillablePersonRetriever.RetrieveBillablePeople();
 
             var dateFrom = GetStartingDate(_clock.Now());
             var dateTo = GetEndingDate(_clock.Now());
             
-            var harvestGetTimeSheetsResponse = _harvestTimeSheetRetriever.RetrieveTimeSheets(dateFrom, dateTo);
-            
-            foreach (var harvestBillablePerson in harvestGetBillablePeopleResponse)
+            foreach (var slackBillablePerson in slackGetBillablePeopleResponse)
             {
-                var timeSheetForBillablePerson = harvestGetTimeSheetsResponse.Where(sheet => sheet.UserId == harvestBillablePerson.Id);
-                var sumOfHours = timeSheetForBillablePerson.Sum(timeSheet => timeSheet.Hours);
-                
-                if (sumOfHours < ExpectedHoursByDate(harvestBillablePerson.WeeklyHours, _clock.Now()))
+              if(!(Array.Exists(nonBillablePeople, element => element == slackBillablePerson.Email))){
+                getBillablePeopleResponse.BillablePeople.Add(new GetBillablePeopleResponse.BillablePerson
                 {
-                    var slackLateBillablePerson = slackGetBillablePeopleResponse.SingleOrDefault(billablePerson => String.Equals(RemoveTopLevelDomain(billablePerson.Email), RemoveTopLevelDomain(harvestBillablePerson.Email), StringComparison.OrdinalIgnoreCase));
-                    
-                    if (slackLateBillablePerson != null)
-                    {
-                        getLateBillablePeopleResponse.BillablePeople.Add(new GetLateBillablePeopleResponse.LateBillablePerson
-                        {
-                            Id = slackLateBillablePerson.Id,
-                            Email = slackLateBillablePerson.Email
-                        });
-                    }
-                }
+                  Id = slackBillablePerson.Id,
+                  Email = slackBillablePerson.Email
+                });
+              }
             }
-            return getLateBillablePeopleResponse;
+            return getBillablePeopleResponse;
         }
         private static DateTimeOffset GetStartingDate(DateTimeOffset currentDateTime)
         {
@@ -97,6 +83,15 @@ namespace CryptoTechReminderSystem.UseCase
             var workingDaysByToday = currentDateTime.DayOfWeek - DayOfWeek.Monday + 1;
 
             return (workingDaysByToday - nonWorkingWeekDaysForPartTimeContract) * 7;
+        }
+
+        private static string[] GetNonBillablePeople()
+        {
+          var nonBillablePeople = Environment.GetEnvironmentVariable("NON_BILLABLE_PEOPLE");
+          if(nonBillablePeople != null){
+            return nonBillablePeople.Split(",");
+          }
+          return new string[0];
         }
     }
 }

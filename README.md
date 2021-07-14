@@ -52,26 +52,17 @@ The Wolves is a C# application that follows the principles of [Clean Architectur
 
 Following CA, we have three sea-level use cases:
 
-- [RemindLateBillablePeople](CryptoTechReminderSystem/UseCase/RemindLateBillablePeople.cs)
-- [ListLateBillablePeople](CryptoTechReminderSystem/UseCase/ListLateBillablePeople.cs)
-- [RemindProjectManagers](CryptoTechReminderSystem/UseCase/RemindProjectManagers.cs)
+- [RemindBillablePeople](CryptoTechReminderSystem/UseCase/RemindBillablePeople.cs)
 
 Each of which have use case dependencies on:
 
-- [GetLateBillablePeople](CryptoTechReminderSystem/UseCase/GetLateBillablePeople.cs) which calls the [Harvest API](https://help.getharvest.com/api-v2/) to figure out who is yet to submit their timesheet
-- [GetProjectManagersWithOpenTimeEntries](CryptoTechReminderSystem/UseCase/GetProjectManagersWithOpenTimeEntries.cs) which calls the Harvest API to figure out who is yet to approve others' timesheets.
+- [GetBillablePeople](CryptoTechReminderSystem/UseCase/GetBillablePeople.cs) which calls the [Slack API](https://api.slack.com/) to get a list of people. Exclusions can be added to the NON_BILLABLE_PEOPLE environment variable to stop those people being messaged.
 - [SendReminder](CryptoTechReminderSystem/UseCase/SendReminder.cs) which calls the [Slack API](https://api.slack.com/) to send out reminders.
 
 We then have `CryptoTechReminderSystem.Main/Program.cs`, which schedules when the
 above use cases should be called. The Wolves have two jobs:
 
-- `RemindLateBillablePeopleJob` which sends a Slack direct message to billable people who are
-  yet to fill in their timesheets at 10.30 on a Friday morning and then every 30 mins
-  until 13:30
-- `ListLateBillablePeopleJob` which sends a Slack message to a public channel that
-  lists all the billable people still yet to submit their timesheets at 13:30 on a Friday
-  afternoon
-- `RemindProjectManagersJob` which sends a Slack direct message to project managers who are yet to approve time entries for their projects.
+- `RemindBillablePeopleJob` which sends a Slack direct message to billable people to fill in their timesheets. It runs once at 10am on a Friday or the last day of the month.
 
 ## Getting Started
 
@@ -105,16 +96,14 @@ To locally run the application, there is a set of environment variables that nee
 
 ```sh
 SLACK_TOKEN=
-HARVEST_TOKEN=
-HARVEST_ACCOUNT_ID=
-HARVEST_USER_AGENT=
 SLACK_CHANNEL_ID=
-HARVEST_BILLABLE_ROLES=
 SLACK_REMINDER_MESSAGE=
 SLACK_PM_REMINDER_MESSAGE=
-SLACK_LATE_BILLABLE_PEOPLE_MESSAGE=
-SLACK_NO_LATE_BILLABLE_PEOPLE_MESSAGE=
+SLACK_BILLABLE_PEOPLE_MESSAGE=
+NON_BILLABLE_PEOPLE=
 ```
+
+The NON_BILLABLE_PEOPLE should be in the format "jim@email.com,bob@email.com"
 
 2. Run the application using:
 

@@ -2,11 +2,11 @@ using System.Collections.Generic;
 
 namespace CryptoTechReminderSystem.Boundary
 {
-    public class GetLateBillablePeopleResponse
+    public class GetBillablePeopleResponse
     {
-        public List<LateBillablePerson> BillablePeople;
+        public List<BillablePerson> BillablePeople;
 
-        public class LateBillablePerson
+        public class BillablePerson
         {
             public string Id { get; set; }
             public string Email { get; set; }

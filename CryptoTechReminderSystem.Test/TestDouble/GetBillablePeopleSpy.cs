@@ -4,19 +4,19 @@ using CryptoTechReminderSystem.UseCase;
 
 namespace CryptoTechReminderSystem.Test.TestDouble
 {
-    public class GetLateBillablePeopleSpy : IGetLateBillablePeople
+    public class GetBillablePeopleSpy : IGetBillablePeople
     {
         public bool Called { private set; get; }
 
-        public GetLateBillablePeopleResponse Execute()
+        public GetBillablePeopleResponse Execute()
         {
             Called = true;
             
-            return new GetLateBillablePeopleResponse
+            return new GetBillablePeopleResponse
             {
-                BillablePeople = new List<GetLateBillablePeopleResponse.LateBillablePerson>
+                BillablePeople = new List<GetBillablePeopleResponse.BillablePerson>
                 {
-                    new GetLateBillablePeopleResponse.LateBillablePerson()
+                    new GetBillablePeopleResponse.BillablePerson()
                     {
                         Id = "U9034950",
                         Email = "UncleCraig@aol.com"
